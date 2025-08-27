@@ -1,0 +1,106 @@
+const express = require('express');
+const router = express.Router();
+
+//universal
+const authenticateToken = require('../middleware/authentication');
+const { getTenantDashboard, getAdminDashboard } = require('../actions/getUsersDashboard');
+
+//admin
+const createUser = require('../actions/createUserByAdmin');
+const getUserByStudId = require('../actions/getUserByStudId');
+const forgotPassword = require('../actions/forgotPassword');
+// const getAdminDashboard = require('../actions/getAdminDashboard');
+const authorizeAdmin = require('../middleware/authorizeAdmin');
+const addLocker = require('../actions/addLocker');
+const approveRental = require('../actions/approveRental');
+
+//tenant
+const createAccount = require('../actions/createAccount');
+const loginUser = require('../actions/login');
+// const getTenantDashboard = require('../actions/getUsersDashboard');
+const changePassword = require('../actions/changePassword');
+const lockerTransaction = require('../actions/lockerTransaction');
+const rentStatus = require('../actions/rentStatus');
+
+//upload profile pic
+const upload = require('../middleware/upload');
+const uploadProfilePic = require('../actions/upload');
+
+//admin routes
+router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) => {
+    const {username, password, stud_id, f_name, m_name, l_name, gender, course, email, role} = req.body;
+
+    if(!['student', 'admin'].includes(role)) {
+        return res.status(400).json({error: 'Invalid role. Must be "student" or "admin".'});
+    }
+
+    const result = await createUser(username, password, stud_id, f_name, m_name, l_name, gender, course, email, role);
+
+    if(result && !result.error) {
+        res.status(201).json({message: 'Account created successfully', user: result});  
+    }else {
+        res.status(400).json({error: result?.error || 'Account creation failed'});
+    }
+});
+router.get('/user/:stud_id', authenticateToken, authorizeAdmin, getUserByStudId);
+router.post('/reset-password', authenticateToken, authorizeAdmin, forgotPassword);
+router.get('/dashboard', authenticateToken, authorizeAdmin, getAdminDashboard);
+router.post('/add-locker', authenticateToken, authorizeAdmin, addLocker);
+router.post('/approve-rental', authenticateToken, authorizeAdmin, approveRental);
+
+//tenant routes
+router.post('/create-account', async(req, res) => 
+    {
+    const { username, password, stud_id, f_name, m_name, l_name, gender, course, email } = req.body;
+    const result = await createAccount(username, password, stud_id, f_name, m_name, l_name, gender, course, email);
+
+    if (result) {
+        if(!result.error) {
+            res.status(201).json({ message: 'Account created successfully', user: result });
+        }else {
+            res.status(400).json({error: result.error});
+        }
+    } else {
+        res.status(400).json({ error: 'Account creation failed' });
+    }
+});
+router.post('/login', async(req, res) => {
+    await loginUser(req, res);
+});
+router.post('/change-password', authenticateToken, changePassword);
+router.get('/dashboard', authenticateToken, getTenantDashboard);
+router.post('/transaction', authenticateToken, lockerTransaction);
+router.get('/rent-status', authenticateToken, rentStatus.getLockerStatus);
+router.post('/cancel-reservation', authenticateToken, rentStatus.cancelReservation);
+router.get('/payment-history/:rentalId', authenticateToken, rentStatus.getPaymentHistory);
+
+// upload profile picture routes
+router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), uploadProfilePic);
+// router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), async (req, res) => {
+//     try {
+//         if (!req.file) {
+//             return res.status(400).json({ error: 'No file uploaded' });
+//         }
+
+//         // just the filename, e.g., "20.jpg"
+//         const filename = req.file.filename;
+
+//         await pool.query(
+//             'UPDATE users SET profile_pic = ? WHERE user_id = ?',
+//             [filename, req.user.user_id]
+//         );
+
+//         res.json({ 
+//             message: 'Profile picture uploaded successfully', 
+//             filename 
+//         });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ error: 'Failed to upload profile picture' });
+//     }
+// });
+
+// const bcrypt = require('bcrypt');
+// bcrypt.hash('admin123', 10).then(console.log);
+
+module.exports = router;

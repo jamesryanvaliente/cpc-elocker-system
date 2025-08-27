@@ -10,7 +10,7 @@ const approveRental = async (req, res) => {
     try {
         //check if rental exist and pending
         const [rows] = await connection.query(
-            'SELECT * FROM locker_rentals WHERE rental_id = ? AND status = "pending"',
+            'SELECT * FROM locker_rentals WHERE rental_id = ? AND status IN ("pending", "reserved")',
             [rental_id]);
 
         if (rows.length === 0) {
@@ -24,12 +24,13 @@ const approveRental = async (req, res) => {
         let endDate = new Date();
 
         let monthsToUse = rental.months;
-        let paidToUse = rental.paid_amount;
-        let total = rental.total_amount;
-        let balance = rental.balance;
+        let paidToUse = rental.paid_amount || 0;
+        let total = rental.total_amount || 0;
+        let balance = rental.balance || 0;
 
         const ratePerMonth = 60;
 
+        // if the request is for approving a reservation
         if (rental.action_type === 'reserve') {
             // admin input for rent info
             if (!months || !paid_months) {

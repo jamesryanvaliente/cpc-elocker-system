@@ -34,8 +34,25 @@ const lockerTransaction = async (req, res) => {
     balance = total - paid;
   }
 
-  const rentStatus = payment_method === 'qr' ? 'active' : 'pending';
-  const lockerStatus = payment_method === 'qr' ? 'rented' : 'pending';
+  // const rentStatus = payment_method === 'qr' ? 'active' : 'pending';
+  // const lockerStatus = payment_method === 'qr' ? 'rented' : 'pending';
+
+  // decide rental and locker status
+  let rentStatus;
+  let lockerStatus;
+
+  if (action_type === 'reserve') {
+    rentStatus = 'reserved'; // changed here
+    lockerStatus = 'reserved';
+  } else if (action_type === 'rent') {
+    if (payment_method === 'qr') {
+      rentStatus = 'active';
+      lockerStatus = 'rented';
+    } else {
+      rentStatus = 'pending';
+      lockerStatus = 'pending';
+    }
+  }
 
   try {
     //check if the user has 2 rented/pending lockers

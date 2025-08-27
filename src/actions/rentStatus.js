@@ -1,9 +1,9 @@
 const connection = require('../database/connection');
 
 // get all locker statuses for a logged-in user
-const getLockerStatuses = async (req, res) => {
+const getLockerStatus = async (req, res) => {
     try {
-        const userId = req.params.userId; // or from auth middleware
+        const userId = req.user.user_id;
 
         const query = `
             SELECT 
@@ -25,7 +25,7 @@ const getLockerStatuses = async (req, res) => {
                 u.l_name,
                 u.email,
                 c.course_name,
-                CONCAT('/uploads/profile_pics/', u.user_id, '.jpg') AS profile_pic -- example path
+                CONCAT('/uploads/profile_pics/', u.user_id, '.jpg') AS profile_pic
             FROM locker_rentals lr
             JOIN lockers l ON lr.locker_id = l.locker_id
             JOIN users u ON lr.user_id = u.user_id
@@ -46,19 +46,43 @@ const getLockerStatuses = async (req, res) => {
 // cancel reservation with reason
 const cancelReservation = async (req, res) => {
     try {
-        const { rentalId, userId, reason } = req.body;
+        const { rental_id, reason } = req.body;
+        const userId = req.user.user_id;
+
+        // check if rental belongs to this user and is active/reserved
+        const [rentals] = await connection.query(
+            'SELECT * FROM locker_rentals WHERE rental_id = ? AND user_id = ? AND status IN ("reserved", "pending")',
+            [rental_id, userId]
+        );
+
+        // console.log('cancelReservation debug', { rental_id, userId, rentals });
+
+        if (rentals.length === 0) {
+            return res.status(403).json({ error: 'not allowed to cancel this reservation' });
+        }
+
+        const rental = rentals[0];
 
         // update rental status to cancelled
         await connection.query(
-            'UPDATE locker_rentals SET status = ? WHERE rental_id = ? AND user_id = ?',
-            ['cancelled', rentalId, userId]
+            'UPDATE locker_rentals SET status = ? WHERE rental_id = ?',
+            ['cancelled', rental_id]
+        );
+
+        // update locker back to available
+        await connection.query(
+            'UPDATE lockers SET status = ? WHERE locker_id = ?',
+            ['available', rental.locker_id]
         );
 
         // insert cancellation reason
         await connection.query(
             'INSERT INTO cancellation_reasons (rental_id, user_id, reason) VALUES (?, ?, ?)',
-            [rentalId, userId, reason]
+            [rental_id, userId, reason]
         );
+
+        // remove the cancelled reservation from locker_rentals
+        // await connection.query('DELETE FROM locker_rentals WHERE rental_id = ?', [rentalId]);
 
         res.json({ message: 'reservation cancelled successfully' });
 
@@ -72,6 +96,7 @@ const cancelReservation = async (req, res) => {
 const getPaymentHistory = async (req, res) => {
     try {
         const { rentalId } = req.params;
+        const userId = req.user.user_id;
 
         const query = `
             SELECT
@@ -83,11 +108,16 @@ const getPaymentHistory = async (req, res) => {
                 paid_amount,
                 total_amount
             FROM locker_rentals
-            WHERE rental_id = ?
+            WHERE rental_id = ? AND user_id = ?
         `;
 
-        const [rows] = await connection.query(query, [rentalId]);
-        res.json(rows);
+        const [rows] = await connection.query(query, [rentalId, userId]);
+
+        if (rows.length === 0) {
+            return res.status(403).json({ error: 'not authorized to view this payment history' });
+        }
+
+        res.json(rows[0]);
 
     } catch (error) {
         console.error(error);
@@ -96,7 +126,7 @@ const getPaymentHistory = async (req, res) => {
 };
 
 module.exports = {
-    getLockerStatuses,
+    getLockerStatus,
     cancelReservation,
     getPaymentHistory
 };

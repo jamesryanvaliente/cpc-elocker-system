@@ -8,7 +8,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon src/server.js"
+    "start": "nodemon src/server.js",
+    "export-db": "mysqldump -u jbj_capstone -p capstone > src/database/capstoneDB.sql",
+    "import-db": "mysql -u jbj_capstone -p capstone < src/database/capstoneDB.sql"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
