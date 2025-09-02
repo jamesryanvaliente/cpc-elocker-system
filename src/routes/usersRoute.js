@@ -1,9 +1,16 @@
 const express = require('express');
 const router = express.Router();
 
-//universal
+//reusable
 const authenticateToken = require('../middleware/authentication');
 const { getTenantDashboard, getAdminDashboard } = require('../actions/getUsersDashboard');
+const {
+  createTicket,
+  listTickets,
+  getTicketMessages,
+  replyTicket,
+  markAsAnswered
+} = require('../actions/ticket');
 
 //admin
 const createUser = require('../actions/createUserByAdmin');
@@ -26,6 +33,10 @@ const rentStatus = require('../actions/rentStatus');
 const upload = require('../middleware/upload');
 const uploadProfilePic = require('../actions/upload');
 
+//shared route
+router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
+router.post('/tickets/:ticket_id/messages', authenticateToken, replyTicket);
+
 //admin routes
 router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) => {
     const {username, password, stud_id, f_name, m_name, l_name, gender, course, email, role} = req.body;
@@ -47,6 +58,8 @@ router.post('/reset-password', authenticateToken, authorizeAdmin, forgotPassword
 router.get('/dashboard', authenticateToken, authorizeAdmin, getAdminDashboard);
 router.post('/add-locker', authenticateToken, authorizeAdmin, addLocker);
 router.post('/approve-rental', authenticateToken, authorizeAdmin, approveRental);
+router.get('/tickets', authenticateToken, authorizeAdmin, listTickets);
+router.patch('/tickets/:ticket_id/answered', authenticateToken, authorizeAdmin, markAsAnswered);
 
 //tenant routes
 router.post('/create-account', async(req, res) => 
@@ -73,6 +86,7 @@ router.post('/transaction', authenticateToken, lockerTransaction);
 router.get('/rent-status', authenticateToken, rentStatus.getLockerStatus);
 router.post('/cancel-reservation', authenticateToken, rentStatus.cancelReservation);
 router.get('/payment-history/:rentalId', authenticateToken, rentStatus.getPaymentHistory);
+router.post('/tickets', authenticateToken, createTicket);
 
 // upload profile picture routes
 router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), uploadProfilePic);
