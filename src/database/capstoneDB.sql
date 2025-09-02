@@ -170,7 +170,7 @@ CREATE TABLE `lockers` (
 
 LOCK TABLES `lockers` WRITE;
 /*!40000 ALTER TABLE `lockers` DISABLE KEYS */;
-INSERT INTO `lockers` VALUES (39,'A1','lobby','rented',20,NULL,'0000-00-00 00:00:00','2025-08-12 14:06:59','2025-12-12 14:06:59','test','2025-08-12 05:53:05','2025-08-12 06:06:59'),(40,'A2','lobby','rented',20,NULL,'0000-00-00 00:00:00','2025-08-12 14:08:26','2026-01-12 14:08:26','test','2025-08-12 05:53:11','2025-08-12 06:08:26'),(41,'A3','lobby','rented',31,NULL,'0000-00-00 00:00:00','2025-08-14 01:39:00','2026-01-14 01:39:00','test','2025-08-12 05:53:17','2025-08-13 17:39:00'),(42,'A4','lobby','rented',31,NULL,'0000-00-00 00:00:00','2025-08-14 01:18:50','2026-01-14 01:18:50','test','2025-08-12 05:53:23','2025-08-13 17:18:50'),(43,'A5','lobby','rented',33,NULL,'0000-00-00 00:00:00','2025-08-14 01:39:42','2026-01-14 01:39:42','test','2025-08-12 05:53:29','2025-08-13 17:39:42'),(44,'A6','lobby','reserved',34,'2025-08-27 01:55:05','2025-08-29 01:55:05',NULL,NULL,'test','2025-08-12 05:53:35','2025-08-26 17:55:05'),(45,'A7','lobby','rented',34,NULL,'0000-00-00 00:00:00','2025-08-27 01:56:01','2026-01-27 01:56:01','test','2025-08-12 05:53:41','2025-08-26 17:56:01'),(46,'A9','lobby','rented',36,NULL,NULL,'2025-08-28 01:29:14','2026-01-28 01:29:14','test','2025-08-12 05:53:53','2025-08-27 17:29:14'),(47,'A10','lobby','rented',36,NULL,NULL,'2025-08-28 01:42:33','2026-01-28 01:42:33','test','2025-08-12 05:54:04','2025-08-27 17:42:33'),(48,'A11','lobby','available',39,'2025-08-28 02:10:07','2025-08-30 02:10:07',NULL,NULL,'test','2025-08-13 17:43:24','2025-08-27 18:10:35'),(49,'A12','lobby','rented',33,NULL,NULL,'2025-08-14 01:45:06','2026-01-14 01:45:06','test','2025-08-13 17:43:31','2025-08-13 17:45:06');
+INSERT INTO `lockers` VALUES (39,'A1','lobby','rented',20,NULL,'0000-00-00 00:00:00','2025-08-12 14:06:59','2025-12-12 14:06:59','test','2025-08-12 05:53:05','2025-08-12 06:06:59'),(40,'A2','lobby','rented',20,NULL,'0000-00-00 00:00:00','2025-08-12 14:08:26','2026-01-12 14:08:26','test','2025-08-12 05:53:11','2025-08-12 06:08:26'),(41,'A3','lobby','rented',31,NULL,'0000-00-00 00:00:00','2025-08-14 01:39:00','2026-01-14 01:39:00','test','2025-08-12 05:53:17','2025-08-13 17:39:00'),(42,'A4','lobby','rented',31,NULL,'0000-00-00 00:00:00','2025-08-14 01:18:50','2026-01-14 01:18:50','test','2025-08-12 05:53:23','2025-08-13 17:18:50'),(43,'A5','lobby','rented',33,NULL,'0000-00-00 00:00:00','2025-08-14 01:39:42','2026-01-14 01:39:42','test','2025-08-12 05:53:29','2025-08-13 17:39:42'),(44,'A6','lobby','available',NULL,NULL,NULL,NULL,NULL,'test','2025-08-12 05:53:35','2025-08-30 17:14:00'),(45,'A7','lobby','rented',34,NULL,'0000-00-00 00:00:00','2025-08-27 01:56:01','2026-01-27 01:56:01','test','2025-08-12 05:53:41','2025-08-26 17:56:01'),(46,'A9','lobby','rented',36,NULL,NULL,'2025-08-28 01:29:14','2026-01-28 01:29:14','test','2025-08-12 05:53:53','2025-08-27 17:29:14'),(47,'A10','lobby','rented',36,NULL,NULL,'2025-08-28 01:42:33','2026-01-28 01:42:33','test','2025-08-12 05:54:04','2025-08-27 17:42:33'),(48,'A11','lobby','available',39,'2025-08-28 02:10:07','2025-08-30 02:10:07',NULL,NULL,'test','2025-08-13 17:43:24','2025-08-27 18:10:35'),(49,'A12','lobby','rented',33,NULL,NULL,'2025-08-14 01:45:06','2026-01-14 01:45:06','test','2025-08-13 17:43:31','2025-08-13 17:45:06');
 /*!40000 ALTER TABLE `lockers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -203,6 +203,68 @@ CREATE TABLE `payment_history` (
 LOCK TABLES `payment_history` WRITE;
 /*!40000 ALTER TABLE `payment_history` DISABLE KEYS */;
 /*!40000 ALTER TABLE `payment_history` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `ticket_messages`
+--
+
+DROP TABLE IF EXISTS `ticket_messages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ticket_messages` (
+  `message_id` int(11) NOT NULL AUTO_INCREMENT,
+  `ticket_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`message_id`),
+  KEY `ticket_id` (`ticket_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `ticket_messages_ibfk_1` FOREIGN KEY (`ticket_id`) REFERENCES `tickets` (`ticket_id`) ON DELETE CASCADE,
+  CONSTRAINT `ticket_messages_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ticket_messages`
+--
+
+LOCK TABLES `ticket_messages` WRITE;
+/*!40000 ALTER TABLE `ticket_messages` DISABLE KEYS */;
+INSERT INTO `ticket_messages` VALUES (1,2,24,'i will check your issue asap','2025-08-31 10:18:45'),(2,2,24,'i will check your issue asap','2025-08-31 10:19:49'),(3,2,34,'okay thank you','2025-08-31 10:30:33'),(4,6,20,'okay thank you','2025-09-02 22:21:42'),(5,6,20,'okay thank you','2025-09-02 22:22:02'),(6,6,20,'okay thank you','2025-09-02 22:29:28'),(7,2,24,'okay thank you1234','2025-09-02 22:45:09'),(8,6,24,'okay thank you0123','2025-09-02 22:45:41'),(9,6,20,'okay thank you9999','2025-09-02 22:47:52'),(10,6,20,'okay thank you888','2025-09-02 22:49:14'),(11,6,24,'okay okay','2025-09-02 22:50:15'),(12,2,24,'okay okay','2025-09-02 23:07:55'),(13,5,24,'okay okay','2025-09-02 23:08:24');
+/*!40000 ALTER TABLE `ticket_messages` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `tickets`
+--
+
+DROP TABLE IF EXISTS `tickets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tickets` (
+  `ticket_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `request` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('Pending','Answered') DEFAULT 'Pending',
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`ticket_id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `tickets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `tickets`
+--
+
+LOCK TABLES `tickets` WRITE;
+/*!40000 ALTER TABLE `tickets` DISABLE KEYS */;
+INSERT INTO `tickets` VALUES (2,39,'Locker Issue','Lost key','I lost my locker key yesterday.','Answered','2025-08-31 01:17:52'),(3,39,'Locker Issue','Lost key','I lost my locker key yesterday.','Pending','2025-09-01 22:26:02'),(4,39,'Locker Issue','Lost key','I lost my locker key yesterday.','Pending','2025-09-01 23:44:26'),(5,39,'Locker Issue','Lost key','I lost my locker key yesterday.','Answered','2025-09-01 23:47:54'),(6,20,'Locker Issue','Lost key','I lost my locker key yesterday.','Answered','2025-09-02 22:13:25');
+/*!40000 ALTER TABLE `tickets` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -253,4 +315,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-08-28  3:46:54
+-- Dump completed on 2025-09-03  0:45:23
