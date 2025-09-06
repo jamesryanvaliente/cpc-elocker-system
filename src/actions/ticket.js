@@ -134,8 +134,6 @@ const replyTicket = async (req, res) => {
   }
 };
 
-
-
 // mark as answered manually
 const markAsAnswered = async (req, res) => {
   const { ticket_id } = req.params;

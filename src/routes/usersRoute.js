@@ -20,6 +20,12 @@ const forgotPassword = require('../actions/forgotPassword');
 const authorizeAdmin = require('../middleware/authorizeAdmin');
 const addLocker = require('../actions/addLocker');
 const approveRental = require('../actions/approveRental');
+const getTenantStats = require('../actions/getTenantStats');
+const getRentByCourse = require('../actions/getRentByCourse');
+const getIncomeStats = require('../actions/getIncomeStats');
+const getReservationStats = require('../actions/getReservationStats');
+const getDashboardSummary  = require('../actions/getDashboardSummary');
+const downloadDashboardReport = require('../actions/downloadDashboardReport');
 
 //tenant
 const createAccount = require('../actions/createAccount');
@@ -60,6 +66,12 @@ router.post('/add-locker', authenticateToken, authorizeAdmin, addLocker);
 router.post('/approve-rental', authenticateToken, authorizeAdmin, approveRental);
 router.get('/tickets', authenticateToken, authorizeAdmin, listTickets);
 router.patch('/tickets/:ticket_id/answered', authenticateToken, authorizeAdmin, markAsAnswered);
+router.get('/dashboard/tenants', authenticateToken, authorizeAdmin, getTenantStats);
+router.get('/dashboard/rent-by-course', authenticateToken, authorizeAdmin, getRentByCourse);
+router.get('/dashboard/income', authenticateToken, authorizeAdmin, getIncomeStats);
+router.get('/dashboard/reservations', authenticateToken, authorizeAdmin, getReservationStats);
+router.get('/dashboard/summary', authenticateToken, authorizeAdmin, getDashboardSummary);
+router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadDashboardReport);
 
 //tenant routes
 router.post('/create-account', async(req, res) => 
