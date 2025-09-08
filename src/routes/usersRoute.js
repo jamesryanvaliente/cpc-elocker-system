@@ -3,6 +3,9 @@ const router = express.Router();
 
 //reusable
 const authenticateToken = require('../middleware/authentication');
+
+//shared actions
+const lockerTransaction = require('../actions/lockerTransactionV1');
 const { getTenantDashboard, getAdminDashboard } = require('../actions/getUsersDashboard');
 const {
   createTicket,
@@ -32,7 +35,6 @@ const createAccount = require('../actions/createAccount');
 const loginUser = require('../actions/login');
 // const getTenantDashboard = require('../actions/getUsersDashboard');
 const changePassword = require('../actions/changePassword');
-const lockerTransaction = require('../actions/lockerTransaction');
 const rentStatus = require('../actions/rentStatus');
 
 //upload profile pic
@@ -40,6 +42,10 @@ const upload = require('../middleware/upload');
 const uploadProfilePic = require('../actions/upload');
 
 //shared route
+router.post('/login', async(req, res) => {
+    await loginUser(req, res);
+});
+router.post('/transaction', authenticateToken, lockerTransaction);
 router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
 router.post('/tickets/:ticket_id/messages', authenticateToken, replyTicket);
 
@@ -89,12 +95,8 @@ router.post('/create-account', async(req, res) =>
         res.status(400).json({ error: 'Account creation failed' });
     }
 });
-router.post('/login', async(req, res) => {
-    await loginUser(req, res);
-});
 router.post('/change-password', authenticateToken, changePassword);
 router.get('/dashboard', authenticateToken, getTenantDashboard);
-router.post('/transaction', authenticateToken, lockerTransaction);
 router.get('/rent-status', authenticateToken, rentStatus.getLockerStatus);
 router.post('/cancel-reservation', authenticateToken, rentStatus.cancelReservation);
 router.get('/payment-history/:rentalId', authenticateToken, rentStatus.getPaymentHistory);

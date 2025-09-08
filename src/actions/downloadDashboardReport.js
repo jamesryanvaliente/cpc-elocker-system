@@ -102,8 +102,8 @@ const downloadDashboardReport = async (req, res) => {
     doc.fontSize(10).fillColor('#777')
       .text(`Generated on: ${dayjs().format('MMMM D, YYYY h:mm A')}`, { align: 'right' });
     doc.moveDown(0.2);
-    doc.fontSize(10).fillColor('#777')
-      .text(`Copyright © 2025-2026 Cordova Public College®. All rights reserved.`, { align: 'right' });
+    doc.fontSize(8).fillColor('#777')
+      .text(`Copyright © 2025-2026 Cordova Public College. All rights reserved.`, { align: 'right' });
 
     doc.end();
   } catch (err) {
