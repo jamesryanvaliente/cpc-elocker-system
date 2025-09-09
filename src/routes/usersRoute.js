@@ -5,7 +5,8 @@ const router = express.Router();
 const authenticateToken = require('../middleware/authentication');
 
 //shared actions
-const lockerTransaction = require('../actions/lockerTransactionV1');
+const rentStatus = require('../actions/rentStatusV2');
+const lockerTransaction = require('../actions/lockerTransactionV2');
 const { getTenantDashboard, getAdminDashboard } = require('../actions/getUsersDashboard');
 const {
   createTicket,
@@ -35,7 +36,6 @@ const createAccount = require('../actions/createAccount');
 const loginUser = require('../actions/login');
 // const getTenantDashboard = require('../actions/getUsersDashboard');
 const changePassword = require('../actions/changePassword');
-const rentStatus = require('../actions/rentStatus');
 
 //upload profile pic
 const upload = require('../middleware/upload');
@@ -78,6 +78,8 @@ router.get('/dashboard/income', authenticateToken, authorizeAdmin, getIncomeStat
 router.get('/dashboard/reservations', authenticateToken, authorizeAdmin, getReservationStats);
 router.get('/dashboard/summary', authenticateToken, authorizeAdmin, getDashboardSummary);
 router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadDashboardReport);
+router.get('/active-rentals', authenticateToken, authorizeAdmin, rentStatus.getAllActiveRentals);
+router.get('/payment-history-ad/:rentalId', authenticateToken, authorizeAdmin, rentStatus.getPaymentHistoryAdmin);
 
 //tenant routes
 router.post('/create-account', async(req, res) => 
