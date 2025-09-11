@@ -242,7 +242,7 @@ const lockerTransaction = async (req, res) => {
     return res.status(200).json({
       message: rentStatus === "active"
         ? `Locker ${action_type} successful and active.`
-        : `Locker ${action_type} is pending. Please pay before expiry date.`
+        : `Locker ${action_type} is pending. Please pay before 2 days from now on or else your ${action_type} will be cancelled.`
     });
 
   } catch (error) {

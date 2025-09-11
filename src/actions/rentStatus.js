@@ -15,6 +15,7 @@ const getLockerStatus = async (req, res) => {
                 lr.start_date,
                 lr.due_date,
                 lr.status AS rental_status,
+                lr.cancelled_at,
                 lr.payment_method,
                 lr.total_amount,
                 lr.paid_amount,
@@ -65,7 +66,7 @@ const cancelReservation = async (req, res) => {
 
         // update rental status to cancelled
         await connection.query(
-            'UPDATE locker_rentals SET status = ? WHERE rental_id = ?',
+            'UPDATE locker_rentals SET status = ?, cancelled_at = NOW() WHERE rental_id = ?',
             ['cancelled', rental_id]
         );
 

@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const connection = require('../database/connection');
 
-//reusable
+// =================== middleware ===================
 const authenticateToken = require('../middleware/authentication');
 
-//shared actions
+// =================== shared actions ===================
 const rentStatus = require('../actions/rentStatusV2');
 const lockerTransaction = require('../actions/lockerTransactionV2');
 const { getTenantDashboard, getAdminDashboard } = require('../actions/getUsersDashboard');
@@ -16,14 +17,15 @@ const {
   markAsAnswered
 } = require('../actions/ticket');
 
-//admin
+// =================== admin ===================
 const createUser = require('../actions/createUserByAdmin');
 const getUserByStudId = require('../actions/getUserByStudId');
 const forgotPassword = require('../actions/forgotPassword');
 // const getAdminDashboard = require('../actions/getAdminDashboard');
 const authorizeAdmin = require('../middleware/authorizeAdmin');
 const addLocker = require('../actions/addLocker');
-const approveRental = require('../actions/approveRental');
+const { approveRental, cancelRental } = require('../actions/approveRentalV2');
+const { getPendingRentals } = require('../actions/getPendingRentals');
 const getTenantStats = require('../actions/getTenantStats');
 const getRentByCourse = require('../actions/getRentByCourse');
 const getIncomeStats = require('../actions/getIncomeStats');
@@ -31,17 +33,17 @@ const getReservationStats = require('../actions/getReservationStats');
 const getDashboardSummary  = require('../actions/getDashboardSummary');
 const downloadDashboardReport = require('../actions/downloadDashboardReport');
 
-//tenant
+// =================== tenant ===================
 const createAccount = require('../actions/createAccount');
 const loginUser = require('../actions/login');
 // const getTenantDashboard = require('../actions/getUsersDashboard');
 const changePassword = require('../actions/changePassword');
 
-//upload profile pic
+// =================== upload profile pic ===================
 const upload = require('../middleware/upload');
 const uploadProfilePic = require('../actions/upload');
 
-//shared route
+// =================== shared route ===================
 router.post('/login', async(req, res) => {
     await loginUser(req, res);
 });
@@ -49,7 +51,7 @@ router.post('/transaction', authenticateToken, lockerTransaction);
 router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
 router.post('/tickets/:ticket_id/messages', authenticateToken, replyTicket);
 
-//admin routes
+// =================== admin routes ===================
 router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) => {
     const {username, password, stud_id, f_name, m_name, l_name, gender, course, email, role} = req.body;
 
@@ -70,6 +72,8 @@ router.post('/reset-password', authenticateToken, authorizeAdmin, forgotPassword
 router.get('/dashboard', authenticateToken, authorizeAdmin, getAdminDashboard);
 router.post('/add-locker', authenticateToken, authorizeAdmin, addLocker);
 router.post('/approve-rental', authenticateToken, authorizeAdmin, approveRental);
+router.post('/cancel-rental', authenticateToken, authorizeAdmin, cancelRental);
+router.get('/pending-rentals', authenticateToken, authorizeAdmin, getPendingRentals);
 router.get('/tickets', authenticateToken, authorizeAdmin, listTickets);
 router.patch('/tickets/:ticket_id/answered', authenticateToken, authorizeAdmin, markAsAnswered);
 router.get('/dashboard/tenants', authenticateToken, authorizeAdmin, getTenantStats);
@@ -81,7 +85,7 @@ router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadD
 router.get('/active-rentals', authenticateToken, authorizeAdmin, rentStatus.getAllActiveRentals);
 router.get('/payment-history-ad/:rentalId', authenticateToken, authorizeAdmin, rentStatus.getPaymentHistoryAdmin);
 
-//tenant routes
+// =================== tenant routes ===================
 router.post('/create-account', async(req, res) => 
     {
     const { username, password, stud_id, f_name, m_name, l_name, gender, course, email } = req.body;
@@ -104,7 +108,67 @@ router.post('/cancel-reservation', authenticateToken, rentStatus.cancelReservati
 router.get('/payment-history/:rentalId', authenticateToken, rentStatus.getPaymentHistory);
 router.post('/tickets', authenticateToken, createTicket);
 
-// upload profile picture routes
+// =================== notifcation routes ===================
+router.get('/notifications', authenticateToken, async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+
+        const [rows] = await connection.query(
+            `SELECT notif_id, message, type, is_read, created_at
+             FROM notifications 
+             WHERE user_id = ? 
+             ORDER BY created_at DESC`,
+            [user_id]
+        );
+
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        res.status(500).json({ error: 'internal server error' });
+    }
+});
+// mark single notification as read
+router.put('/notifications/:notif_id/read', authenticateToken, async (req, res) => {
+    try {
+        const { notif_id } = req.params;
+        const user_id = req.user.user_id; // from jwt
+
+        // make sure the notif belongs to the logged in user
+        const [result] = await connection.query(
+            `UPDATE notifications 
+             SET is_read = 1 
+             WHERE notif_id = ? AND user_id = ?`,
+            [notif_id, user_id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'notification not found' });
+        }
+
+        res.json({ message: 'notification marked as read' });
+    } catch (error) {
+        console.error('error marking notification:', error);
+        res.status(500).json({ error: 'internal server error' });
+    }
+});
+// optional: mark all as read
+router.put('/notifications/read-all', authenticateToken, async (req, res) => {
+    try {
+        const user_id = req.user.user_id;
+        await connection.query(
+            `UPDATE notifications 
+             SET is_read = 1 
+             WHERE user_id = ?`,
+            [user_id]
+        );
+        res.json({ message: 'all notifications marked as read' });
+    } catch (error) {
+        console.error('error marking all notifications:', error);
+        res.status(500).json({ error: 'internal server error' });
+    }
+});
+
+// =================== upload profile picture routes ===================
 router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), uploadProfilePic);
 // router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), async (req, res) => {
 //     try {
