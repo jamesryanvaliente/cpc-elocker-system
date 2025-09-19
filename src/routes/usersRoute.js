@@ -5,6 +5,9 @@ const connection = require('../database/connection');
 // =================== middleware ===================
 const authenticateToken = require('../middleware/authentication');
 
+// =================== notification actions ===================
+const { getNotifications, markAsRead, markAllAsRead } = require('../actions/notification');
+
 // =================== shared actions ===================
 const rentStatus = require('../actions/rentStatusV2');
 const lockerTransaction = require('../actions/lockerTransactionV2');
@@ -19,7 +22,6 @@ const {
 
 // =================== admin ===================
 const createUser = require('../actions/createUserByAdmin');
-const getUserByStudId = require('../actions/getUserByStudId');
 const forgotPassword = require('../actions/forgotPassword');
 // const getAdminDashboard = require('../actions/getAdminDashboard');
 const authorizeAdmin = require('../middleware/authorizeAdmin');
@@ -32,6 +34,8 @@ const getIncomeStats = require('../actions/getIncomeStats');
 const getReservationStats = require('../actions/getReservationStats');
 const getDashboardSummary  = require('../actions/getDashboardSummary');
 const downloadDashboardReport = require('../actions/downloadDashboardReport');
+const { getAllCourses, addCourse, getStudentsByCourse } = require('../actions/getAllUsers');
+const { disableUserAccount, enableUserAccount } = require('../actions/userAccountStatus');
 
 // =================== tenant ===================
 const createAccount = require('../actions/createAccount');
@@ -67,7 +71,6 @@ router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) 
         res.status(400).json({error: result?.error || 'Account creation failed'});
     }
 });
-router.get('/user/:stud_id', authenticateToken, authorizeAdmin, getUserByStudId);
 router.post('/reset-password', authenticateToken, authorizeAdmin, forgotPassword);
 router.get('/dashboard', authenticateToken, authorizeAdmin, getAdminDashboard);
 router.post('/add-locker', authenticateToken, authorizeAdmin, addLocker);
@@ -84,6 +87,13 @@ router.get('/dashboard/summary', authenticateToken, authorizeAdmin, getDashboard
 router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadDashboardReport);
 router.get('/active-rentals', authenticateToken, authorizeAdmin, rentStatus.getAllActiveRentals);
 router.get('/payment-history-ad/:rentalId', authenticateToken, authorizeAdmin, rentStatus.getPaymentHistoryAdmin);
+router.get('/courses', authenticateToken, authorizeAdmin, getAllCourses);
+router.post('/courses', authenticateToken, authorizeAdmin, upload.single('logo'), addCourse);
+router.get('/courses/:course_id/students', authenticateToken, authorizeAdmin, getStudentsByCourse);
+router.put('/users/:user_id/disable', authenticateToken, authorizeAdmin, disableUserAccount);
+router.put('/users/:user_id/enable', authenticateToken, authorizeAdmin, enableUserAccount);
+
+
 
 // =================== tenant routes ===================
 router.post('/create-account', async(req, res) => 
@@ -109,64 +119,9 @@ router.get('/payment-history/:rentalId', authenticateToken, rentStatus.getPaymen
 router.post('/tickets', authenticateToken, createTicket);
 
 // =================== notifcation routes ===================
-router.get('/notifications', authenticateToken, async (req, res) => {
-    try {
-        const user_id = req.user.user_id;
-
-        const [rows] = await connection.query(
-            `SELECT notif_id, message, type, is_read, created_at
-             FROM notifications 
-             WHERE user_id = ? 
-             ORDER BY created_at DESC`,
-            [user_id]
-        );
-
-        res.json(rows);
-    } catch (error) {
-        console.error('Error fetching notifications:', error);
-        res.status(500).json({ error: 'internal server error' });
-    }
-});
-// mark single notification as read
-router.put('/notifications/:notif_id/read', authenticateToken, async (req, res) => {
-    try {
-        const { notif_id } = req.params;
-        const user_id = req.user.user_id; // from jwt
-
-        // make sure the notif belongs to the logged in user
-        const [result] = await connection.query(
-            `UPDATE notifications 
-             SET is_read = 1 
-             WHERE notif_id = ? AND user_id = ?`,
-            [notif_id, user_id]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'notification not found' });
-        }
-
-        res.json({ message: 'notification marked as read' });
-    } catch (error) {
-        console.error('error marking notification:', error);
-        res.status(500).json({ error: 'internal server error' });
-    }
-});
-// optional: mark all as read
-router.put('/notifications/read-all', authenticateToken, async (req, res) => {
-    try {
-        const user_id = req.user.user_id;
-        await connection.query(
-            `UPDATE notifications 
-             SET is_read = 1 
-             WHERE user_id = ?`,
-            [user_id]
-        );
-        res.json({ message: 'all notifications marked as read' });
-    } catch (error) {
-        console.error('error marking all notifications:', error);
-        res.status(500).json({ error: 'internal server error' });
-    }
-});
+router.get('/notifications', authenticateToken, getNotifications);
+router.put('/notifications/:notif_id/read', authenticateToken, markAsRead);
+router.put('/notifications/read-all', authenticateToken, markAllAsRead);
 
 // =================== upload profile picture routes ===================
 router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), uploadProfilePic);

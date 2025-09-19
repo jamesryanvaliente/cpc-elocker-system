@@ -9,7 +9,7 @@ const loginUser = async (req, res) => {
 
   try {
     const [rows] = await connection.query(`
-      SELECT users.*, accounts.role, accounts.username, accounts.password AS hashedPassword, courses.course_name FROM users
+      SELECT users.*, accounts.role, accounts.username, accounts.password AS hashedPassword, accounts.status, courses.course_name FROM users
       JOIN accounts ON users.account_id = accounts.account_id
       JOIN courses ON users.course_id = courses.course_id
       WHERE accounts.username = ?`,
@@ -20,10 +20,15 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
       const user = rows[0];
+
+      // 🚨 check if account is disabled
+      if (user.status === 'disable') {
+        return res.status(403).json({ error: 'Your account has been disabled. Please go to admin workplace.' });
+      }
+      
       const isMatch = await bcrypt.compare(password, user.hashedPassword);
 
-      if(!isMatch)
-      {
+      if(!isMatch){
         return res.status(401).json({error: 'Invalid username or password'})
       }
 
