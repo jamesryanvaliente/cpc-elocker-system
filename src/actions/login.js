@@ -50,9 +50,9 @@ const loginUser = async (req, res) => {
 
       let redirectUrl = '';
       if(user.role === 'admin') {
-        redirectUrl = '../routes/adminRoute/dashboard';
+        redirectUrl = '/admin/dashboard/summary';
       }else {
-        redirectUrl = '../routes/userRoute/dashboard';
+        redirectUrl = '/locker/getAllLockers';
       }
 
       return res.status(200).json({message: 'Login successfully', user, role: user.role, redirect: redirectUrl, token});

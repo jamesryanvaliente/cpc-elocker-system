@@ -4,10 +4,14 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const dayjs = require('dayjs');
+const { logActivity } = require('./auditlog');
 
 // download dashboard report as PDF (with filtering or default today)
 const downloadDashboardReport = async (req, res) => {
   try {
+    const adminId = req.user.user_id;
+    const adminName = req.user.username;
+
     // date range (default → current month)
     const { start_date, end_date } = getDateRange(
       req.query.start_date,
@@ -106,6 +110,8 @@ const downloadDashboardReport = async (req, res) => {
       .text(`Copyright © 2025-2026 Cordova Public College. All rights reserved.`, { align: 'right' });
 
     doc.end();
+
+    await logActivity(adminId, adminName, `Downloaded dashboard report (${start_date} to ${end_date})`);
   } catch (err) {
     console.error('error generating pdf:', err);
     res.status(500).json({ error: 'internal server error' });

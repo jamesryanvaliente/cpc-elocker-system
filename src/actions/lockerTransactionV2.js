@@ -1,9 +1,13 @@
 const connection = require('../database/connection');
+const { logActivity } = require('./auditlog');
+
+// ========== locker transaction (rent or reserve) ==========
 
 const lockerTransaction = async (req, res) => {
   const { locker_id, months, paid_months, payment_method, action_type, student_id } = req.body;
   const user_id = req.user.user_id;
   const role = req.user.role;
+  const adminName = req.user.username;
 
   if (!locker_id || !payment_method) {
     return res.status(400).json({ error: 'Locker ID and payment method are required' });
@@ -22,7 +26,7 @@ const lockerTransaction = async (req, res) => {
 
       // check if student exists
       const [studentRows] = await connection.query(
-        'SELECT user_id FROM users WHERE stud_id = ?',
+        'SELECT user_id, f_name, m_name, l_name, stud_id FROM users WHERE stud_id = ?',
         [student_id]
       );
 
@@ -30,7 +34,11 @@ const lockerTransaction = async (req, res) => {
         return res.status(404).json({ error: 'No user found with this student ID.' });
       }
 
-      const targetUserId = studentRows[0].user_id;
+      const targetUser = studentRows[0];
+      const targetUserId = targetUser.user_id;
+      const studentName = [targetUser.f_name, targetUser.m_name, targetUser.l_name]
+        .filter(Boolean) // remove null/empty values
+        .join(' ');
 
       // enforce locker limit (max 2 lockers per student)
       const [userLockers] = await connection.query(
@@ -53,6 +61,7 @@ const lockerTransaction = async (req, res) => {
       }
 
       const locker = lockerRows[0];
+      const lockerName = locker.locker_number;
 
       if (['rented', 'pending', 'reserved'].includes(locker.status)) {
         return res.status(400).json({ error: 'This locker is already assigned to another student.' });
@@ -107,8 +116,15 @@ const lockerTransaction = async (req, res) => {
         [locker_id, targetUserId, months, months, total, paid, balance, payment_method, rentStatus, 'rent']
       );
 
+      // log activity
+      await logActivity(
+        user_id,
+        adminName,
+        `Assigned locker ${lockerName} to student: ${studentName} (Student ID: ${targetUser.stud_id})`
+      );
+
       return res.status(200).json({
-        message: `Locker successfully assigned to student ID ${student_id}.`
+        message: `Locker successfully assigned to student ID ${targetUser.stud_id}.`
       });
 
     } catch (error) {
@@ -206,10 +222,7 @@ const lockerTransaction = async (req, res) => {
       });
     }
 
-    const startDate = new Date();
-    const dueDate = new Date();
-    dueDate.setMonth(dueDate.getMonth() + months);
-
+    // Update locker table
     if (action_type === 'reserve') {
       await connection.query(
         `UPDATE lockers
@@ -220,7 +233,20 @@ const lockerTransaction = async (req, res) => {
          WHERE locker_id = ?`,
         [user_id, locker_id]
       );
+    } else if (action_type === 'rent' && payment_method === 'cash') {
+      // Cash rentals have 2-day expiry for payment, then full rental period starts
+      await connection.query(
+        `UPDATE lockers
+         SET status = ?,
+             assigned_to = ?,
+             rented_date = NOW(),
+             reserve_expiry = DATE_ADD(NOW(), INTERVAL 2 DAY),
+             due_date = DATE_ADD(NOW(), INTERVAL ? MONTH)
+         WHERE locker_id = ?`,
+        [lockerStatus, user_id, months, locker_id]
+      );
     } else {
+      // QR rentals are immediately active with full rental period
       await connection.query(
         `UPDATE lockers
          SET status = ?,
@@ -232,17 +258,29 @@ const lockerTransaction = async (req, res) => {
       );
     }
 
-    await connection.query(
-      `INSERT INTO locker_rentals
-      (locker_id, user_id, months, start_date, due_date, total_amount, paid_amount, balance, payment_method, status, action_type)
-      VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? MONTH), ?, ?, ?, ?, ?, ?)` ,
-      [locker_id, user_id, monthsValue, monthsValue, total, paid, balance, payment_method, rentStatus, action_type]
-    );
+    // Insert into locker_rentals table - FIXED
+    if (action_type === 'reserve') {
+      // For reservations, don't set due_date with months calculation
+      await connection.query(
+        `INSERT INTO locker_rentals
+        (locker_id, user_id, months, start_date, due_date, total_amount, paid_amount, balance, payment_method, status, action_type)
+        VALUES (?, ?, ?, NOW(), NULL, ?, ?, ?, ?, ?, ?)`,
+        [locker_id, user_id, monthsValue, total, paid, balance, payment_method, rentStatus, action_type]
+      );
+    } else {
+      // For rentals, use months calculation for due_date
+      await connection.query(
+        `INSERT INTO locker_rentals
+        (locker_id, user_id, months, start_date, due_date, total_amount, paid_amount, balance, payment_method, status, action_type)
+        VALUES (?, ?, ?, NOW(), DATE_ADD(NOW(), INTERVAL ? MONTH), ?, ?, ?, ?, ?, ?)`,
+        [locker_id, user_id, monthsValue, monthsValue, total, paid, balance, payment_method, rentStatus, action_type]
+      );
+    }
 
     return res.status(200).json({
       message: rentStatus === "active"
         ? `Locker ${action_type} successful and active.`
-        : `Locker ${action_type} is pending. Please pay before 2 days from now on or else your ${action_type} will be cancelled.`
+        : `Locker ${action_type} is pending. Please pay within 2 days or your ${action_type} will be cancelled and the locker will become available again.`
     });
 
   } catch (error) {

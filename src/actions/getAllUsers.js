@@ -1,4 +1,5 @@
 const connection = require('../database/connection');
+const { logActivity } = require('./auditlog');
 
 // ========== get all course ==========
 const getAllCourses = async (req, res) => {
@@ -16,25 +17,40 @@ const getAllCourses = async (req, res) => {
 
 // ========== add new course ==========
 const addCourse = async (req, res) => {
-    const { course_name, acronym } = req.body;
-    const logo = req.file ? req.file.filename : null;
+  const { course_name, acronym } = req.body;
+  const logo = req.file ? req.file.filename : null;
 
-    try {
-        const [result] = await connection.query(`
-            INSERT INTO courses (course_name, acronym, logo)
-            VALUES (?, ?, ?)
-        `, [course_name, acronym, logo]);
+  const adminId = req.user.user_id;
+  const adminName = req.user.username;
 
-        res.status(201).json({ message: 'Course added', course_id: result.insertId });
-    } catch (error) {
-        console.error('Error adding course:', error);
+  try {
+    const [result] = await connection.query(
+      `INSERT INTO courses (course_name, acronym, logo)
+       VALUES (?, ?, ?)`,
+      [course_name, acronym, logo]
+    );
 
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ error: 'Course name or acronym already exists' });
-        }
+    // log activity
+    await logActivity(
+      adminId,
+      adminName,
+      `Added new course: ${course_name} (${acronym})`
+    );
 
-        res.status(500).json({ error: 'Internal server error' });
+    return res
+      .status(201)
+      .json({ message: 'Course added', course_id: result.insertId });
+  } catch (error) {
+    console.error('Error adding course:', error);
+
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res
+        .status(400)
+        .json({ error: 'Course name or acronym already exists' });
     }
+
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 // ========== get all students in a course ==========

@@ -36,6 +36,7 @@ const getDashboardSummary  = require('../actions/getDashboardSummary');
 const downloadDashboardReport = require('../actions/downloadDashboardReport');
 const { getAllCourses, addCourse, getStudentsByCourse } = require('../actions/getAllUsers');
 const { disableUserAccount, enableUserAccount } = require('../actions/userAccountStatus');
+const { getAuditLogs } = require('../actions/auditlog');
 
 // =================== tenant ===================
 const createAccount = require('../actions/createAccount');
@@ -56,21 +57,22 @@ router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages)
 router.post('/tickets/:ticket_id/messages', authenticateToken, replyTicket);
 
 // =================== admin routes ===================
-router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) => {
-    const {username, password, stud_id, f_name, m_name, l_name, gender, course, email, role} = req.body;
+// router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) => {
+//     const {username, password, stud_id, f_name, m_name, l_name, gender, course, email, role} = req.body;
 
-    if(!['student', 'admin'].includes(role)) {
-        return res.status(400).json({error: 'Invalid role. Must be "student" or "admin".'});
-    }
+//     if(!['student', 'admin'].includes(role)) {
+//         return res.status(400).json({error: 'Invalid role. Must be "student" or "admin".'});
+//     }
 
-    const result = await createUser(username, password, stud_id, f_name, m_name, l_name, gender, course, email, role);
+//     const result = await createUser(username, password, stud_id, f_name, m_name, l_name, gender, course, email, role);
 
-    if(result && !result.error) {
-        res.status(201).json({message: 'Account created successfully', user: result});  
-    }else {
-        res.status(400).json({error: result?.error || 'Account creation failed'});
-    }
-});
+//     if(result && !result.error) {
+//         res.status(201).json({message: 'Account created successfully', user: result});  
+//     }else {
+//         res.status(400).json({error: result?.error || 'Account creation failed'});
+//     }
+// });
+router.post('/create-user', authenticateToken, authorizeAdmin, createUser);
 router.post('/reset-password', authenticateToken, authorizeAdmin, forgotPassword);
 router.get('/dashboard', authenticateToken, authorizeAdmin, getAdminDashboard);
 router.post('/add-locker', authenticateToken, authorizeAdmin, addLocker);
@@ -92,6 +94,7 @@ router.post('/courses', authenticateToken, authorizeAdmin, upload.single('logo')
 router.get('/courses/:course_id/students', authenticateToken, authorizeAdmin, getStudentsByCourse);
 router.put('/users/:user_id/disable', authenticateToken, authorizeAdmin, disableUserAccount);
 router.put('/users/:user_id/enable', authenticateToken, authorizeAdmin, enableUserAccount);
+router.get('/audit-logs', authenticateToken, authorizeAdmin, getAuditLogs);
 
 
 
