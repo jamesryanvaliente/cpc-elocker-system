@@ -10,13 +10,23 @@ const createTicket = async (req, res) => {
   }
 
   try {
+    // create ticket
     const [result] = await connection.query(
       `INSERT INTO tickets (user_id, subject, request, description, status)
        VALUES (?, ?, ?, ?, 'Pending')`,
       [user_id, subject, request, description]
     );
 
-    res.status(201).json({ message: 'ticket created', ticket_id: result.insertId });
+    const ticket_id = result.insertId;
+
+    // insert initial message into ticket_messages
+    await connection.query(
+      `INSERT INTO ticket_messages (ticket_id, user_id, message)
+       VALUES (?, ?, ?)`,
+      [ticket_id, user_id, description]
+    );
+
+    res.status(201).json({ message: 'ticket created', ticket_id});
   } catch (err) {
     console.error('error creating ticket:', err);
     res.status(500).json({ error: 'internal server error' });
