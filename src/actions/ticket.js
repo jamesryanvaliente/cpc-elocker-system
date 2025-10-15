@@ -4,6 +4,8 @@ const connection = require('../database/connection');
 const createTicket = async (req, res) => {
   const { subject, request, description } = req.body;
   const user_id = req.user.user_id;
+  // req.user = { user_id: decoded.user_id, role: decoded.role };
+
 
   if (!subject || !request || !description) {
     return res.status(400).json({ error: 'all fields are required' });
@@ -75,14 +77,22 @@ const getTicketMessages = async (req, res) => {
 
     // now fetch messages
     const sql = `
-      SELECT m.*, c.course_name, u.f_name, u.m_name, u.l_name, u.email, u.profile_pic, a.role
+      SELECT m.*, u.f_name, u.l_name, a.role
       FROM ticket_messages m
-      JOIN users u ON m.user_id = u.user_id
-      JOIN accounts a ON u.account_id = a.account_id
-      JOIN courses c ON u.course_id = c.course_id
+      LEFT JOIN users u ON m.user_id = u.user_id
+      LEFT JOIN accounts a ON u.account_id = a.account_id
       WHERE m.ticket_id = ?
       ORDER BY m.created_at ASC
     `;
+    // const sql = `
+    //   SELECT m.*, c.course_name, u.f_name, u.m_name, u.l_name, u.email, u.profile_pic, a.role
+    //   FROM ticket_messages m
+    //   JOIN users u ON m.user_id = u.user_id
+    //   JOIN accounts a ON u.account_id = a.account_id
+    //   JOIN courses c ON u.course_id = c.course_id
+    //   WHERE m.ticket_id = ?
+    //   ORDER BY m.created_at ASC
+    // `;
 
     const [rows] = await connection.query(sql, [ticket_id]);
 
@@ -161,10 +171,33 @@ const markAsAnswered = async (req, res) => {
   }
 };
 
+// get only tickets for logged-in student
+const getUserTickets = async (req, res) => {
+  const { user_id } = req.user;
+
+  try {
+    const [rows] = await connection.query(
+      `
+      SELECT t.ticket_id, t.subject, t.request, t.description, t.status, t.created_at
+      FROM tickets t
+      WHERE t.user_id = ?
+      ORDER BY t.created_at DESC
+      `,
+      [user_id]
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching user tickets:", err);
+    res.status(500).json({ error: "internal server error" });
+  }
+};
+
 module.exports = {
   createTicket,
   listTickets,
   getTicketMessages,
+  getUserTickets,
   replyTicket,
   markAsAnswered
 };

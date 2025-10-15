@@ -2,7 +2,7 @@ const connection = require('../database/connection');
 
 const getAllLockers = async (req, res) => {
   try {
-    const { status, page = 1, limit = 12 } = req.query;
+    const { status, page = 1, limit = 24 } = req.query;
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 

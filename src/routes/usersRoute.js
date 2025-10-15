@@ -10,14 +10,15 @@ const { getNotifications, markAsRead, markAllAsRead } = require('../actions/noti
 
 // =================== shared actions ===================
 const rentStatus = require('../actions/rentStatusV2');
-const lockerTransaction = require('../actions/lockerTransactionV2');
+const lockerCtrl = require('../actions/lockerTransactionV2');
 const { getTenantDashboard, getAdminDashboard } = require('../actions/getUsersDashboard');
 const {
   createTicket,
   listTickets,
   getTicketMessages,
   replyTicket,
-  markAsAnswered
+  markAsAnswered,
+  getUserTickets
 } = require('../actions/ticket');
 const { getUserSettings, changePassword } = require("../actions/settings");
 
@@ -54,28 +55,16 @@ const authentication = require('../middleware/authentication');
 router.post('/login', async(req, res) => {
     await loginUser(req, res);
 });
-router.post('/transaction', authenticateToken, lockerTransaction);
+router.post('/locker/transaction', authenticateToken, lockerCtrl.lockerTransaction);
+router.post('/locker/payments', authenticateToken, upload.single('receipt'), lockerCtrl.recordPayment);
+router.post('/locker/payments/:payment_id/verify', authenticateToken, authorizeAdmin, lockerCtrl.verifyPayment);
+router.get('/locker/rentals/:rental_id/payments', authenticateToken, lockerCtrl.getPaymentsForRental);
 router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
-router.post('/tickets/:ticket_id/messages', authenticateToken, replyTicket);
+router.post('/tickets/:ticket_id/reply', authenticateToken, replyTicket);
 router.get("/settings", authentication, getUserSettings);
 router.post("/settings/update-password", authentication, changePassword);
 
 // =================== admin routes ===================
-// router.post('/create-user', authenticateToken, authorizeAdmin, async (req, res) => {
-//     const {username, password, stud_id, f_name, m_name, l_name, gender, course, email, role} = req.body;
-
-//     if(!['student', 'admin'].includes(role)) {
-//         return res.status(400).json({error: 'Invalid role. Must be "student" or "admin".'});
-//     }
-
-//     const result = await createUser(username, password, stud_id, f_name, m_name, l_name, gender, course, email, role);
-
-//     if(result && !result.error) {
-//         res.status(201).json({message: 'Account created successfully', user: result});  
-//     }else {
-//         res.status(400).json({error: result?.error || 'Account creation failed'});
-//     }
-// });
 router.post('/create-user', authenticateToken, authorizeAdmin, createUser);
 router.post('/reset-password', authenticateToken, authorizeAdmin, forgotPassword);
 router.get('/dashboard', authenticateToken, authorizeAdmin, getAdminDashboard);
@@ -93,7 +82,7 @@ router.get('/dashboard/summary', authenticateToken, authorizeAdmin, getDashboard
 router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadDashboardReport);
 router.get('/active-rentals', authenticateToken, authorizeAdmin, rentStatus.getAllActiveRentals);
 router.get('/payment-history-ad/:rentalId', authenticateToken, authorizeAdmin, rentStatus.getPaymentHistoryAdmin);
-router.get('/courses', authenticateToken, authorizeAdmin, getAllCourses);
+router.get('/courses', getAllCourses);
 router.post('/courses', authenticateToken, authorizeAdmin, upload.single('logo'), addCourse);
 router.get('/courses/:course_id/students', authenticateToken, authorizeAdmin, getStudentsByCourse);
 router.put('/users/:user_id/disable', authenticateToken, authorizeAdmin, disableUserAccount);
@@ -118,12 +107,12 @@ router.post('/create-account', async(req, res) =>
         res.status(400).json({ error: 'Account creation failed' });
     }
 });
-// router.post('/change-password', authenticateToken, changePassword);
 router.get('/dashboard', authenticateToken, getTenantDashboard);
 router.get('/rent-status', authenticateToken, rentStatus.getLockerStatus);
 router.post('/cancel-reservation', authenticateToken, rentStatus.cancelReservation);
 router.get('/payment-history/:rentalId', authenticateToken, rentStatus.getPaymentHistory);
-router.post('/tickets', authenticateToken, createTicket);
+router.post('/create-tickets', authenticateToken, createTicket);
+router.get('/my-tickets', authenticateToken, getUserTickets);
 
 // =================== notifcation routes ===================
 router.get('/notifications', authenticateToken, getNotifications);
@@ -132,29 +121,6 @@ router.put('/notifications/read-all', authenticateToken, markAllAsRead);
 
 // =================== upload profile picture routes ===================
 router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), uploadProfilePic);
-// router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), async (req, res) => {
-//     try {
-//         if (!req.file) {
-//             return res.status(400).json({ error: 'No file uploaded' });
-//         }
-
-//         // just the filename, e.g., "20.jpg"
-//         const filename = req.file.filename;
-
-//         await pool.query(
-//             'UPDATE users SET profile_pic = ? WHERE user_id = ?',
-//             [filename, req.user.user_id]
-//         );
-
-//         res.json({ 
-//             message: 'Profile picture uploaded successfully', 
-//             filename 
-//         });
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ error: 'Failed to upload profile picture' });
-//     }
-// });
 
 // const bcrypt = require('bcrypt');
 // bcrypt.hash('admin123', 10).then(console.log);
