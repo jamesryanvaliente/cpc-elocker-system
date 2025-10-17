@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const connection = require('../database/connection');
+const multer = require('multer');
+const upload = multer();
+// const fileType = require('file-type');
+// const connection = require('../database/connection');
+// const userProfile = require('../actions/userProfile');
 
 // =================== middleware ===================
 const authenticateToken = require('../middleware/authentication');
@@ -47,7 +51,7 @@ const loginUser = require('../actions/login');
 // const changePassword = require('../actions/changePassword');
 
 // =================== upload profile pic ===================
-const upload = require('../middleware/upload');
+const uploads = require('../middleware/upload');
 const uploadProfilePic = require('../actions/upload');
 const authentication = require('../middleware/authentication');
 
@@ -56,7 +60,7 @@ router.post('/login', async(req, res) => {
     await loginUser(req, res);
 });
 router.post('/locker/transaction', authenticateToken, lockerCtrl.lockerTransaction);
-router.post('/locker/payments', authenticateToken, upload.single('receipt'), lockerCtrl.recordPayment);
+router.post('/locker/payments', authenticateToken, uploads.single('receipt'), lockerCtrl.recordPayment);
 router.post('/locker/payments/:payment_id/verify', authenticateToken, authorizeAdmin, lockerCtrl.verifyPayment);
 router.get('/locker/rentals/:rental_id/payments', authenticateToken, lockerCtrl.getPaymentsForRental);
 router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
@@ -120,7 +124,34 @@ router.put('/notifications/:notif_id/read', authenticateToken, markAsRead);
 router.put('/notifications/read-all', authenticateToken, markAllAsRead);
 
 // =================== upload profile picture routes ===================
-router.post('/upload-profile-pic', authenticateToken, upload.single('profile_pic'), uploadProfilePic);
+router.post(
+  '/upload-profile-pic',
+  authenticateToken,
+  upload.single('profile_pic'),
+  uploadProfilePic
+);
+
+// ✅ get profile picture (display from db)
+// GET profile picture by user_id
+// router.get('/profile-pic/:user_id', (req, res) => {
+//   const userId = req.params.user_id;
+//   const query = 'SELECT profile_pic FROM users WHERE user_id = ?';
+
+//   connection.query(query, [userId], (err, results) => {
+//     if (err) {
+//       console.error('Error fetching profile picture:', err);
+//       return res.status(500).json({ error: 'Database error' });
+//     }
+
+//     if (!results.length || !results[0].profile_pic) {
+//       return res.status(404).json({ error: 'Profile picture not found' });
+//     }
+
+//     const img = results[0].profile_pic;
+//     res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+//     res.end(img, 'binary');
+//   });
+// });
 
 // const bcrypt = require('bcrypt');
 // bcrypt.hash('admin123', 10).then(console.log);
