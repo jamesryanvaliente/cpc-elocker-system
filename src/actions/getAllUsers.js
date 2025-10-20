@@ -67,17 +67,17 @@ const getStudentsByCourse = async (req, res) => {
             FROM users u
             JOIN accounts a ON u.account_id = a.account_id
             WHERE u.course_id = ? 
-            AND (u.f_name LIKE ? OR u.l_name LIKE ? OR u.email LIKE ?)
+            AND (u.stud_id LIKE ? OR u.f_name LIKE ? OR u.l_name LIKE ? OR u.email LIKE ?)
             ORDER BY u.created_date DESC
             LIMIT ? OFFSET ?
-        `, [course_id, `%${search}%`, `%${search}%`, `%${search}%`, +limit, +offset]);
+        `, [course_id, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, +limit, +offset]);
 
         const [count] = await connection.query(`
             SELECT COUNT(*) AS total 
             FROM users 
             WHERE course_id = ? 
-            AND (f_name LIKE ? OR l_name LIKE ? OR email LIKE ?)
-        `, [course_id, `%${search}%`, `%${search}%`, `%${search}%`]);
+            AND (stud_id LIKE ? OR f_name LIKE ? OR l_name LIKE ? OR email LIKE ?)
+        `, [course_id, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`]);
 
         res.json({
             students: rows,

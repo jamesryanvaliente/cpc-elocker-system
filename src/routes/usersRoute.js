@@ -86,7 +86,7 @@ router.get('/dashboard/summary', authenticateToken, authorizeAdmin, getDashboard
 router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadDashboardReport);
 router.get('/active-rentals', authenticateToken, authorizeAdmin, rentStatus.getAllActiveRentals);
 router.get('/payment-history-ad/:rentalId', authenticateToken, authorizeAdmin, rentStatus.getPaymentHistoryAdmin);
-router.get('/courses', getAllCourses);
+router.get('/courses', authenticateToken, authorizeAdmin, getAllCourses);
 router.post('/courses', authenticateToken, authorizeAdmin, upload.single('logo'), addCourse);
 router.get('/courses/:course_id/students', authenticateToken, authorizeAdmin, getStudentsByCourse);
 router.put('/users/:user_id/disable', authenticateToken, authorizeAdmin, disableUserAccount);

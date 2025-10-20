@@ -33,6 +33,6 @@ app.use('/locker', lockerRouter);
 const profilePicture = require('./routes/profilePicture');
 app.use('/', profilePicture);
 
-app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 module.exports = app;
