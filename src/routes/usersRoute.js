@@ -60,13 +60,14 @@ router.post('/login', async(req, res) => {
     await loginUser(req, res);
 });
 router.post('/locker/transaction', authenticateToken, lockerCtrl.lockerTransaction);
-router.post('/locker/payments', authenticateToken, uploads.single('receipt'), lockerCtrl.recordPayment);
+router.post('/locker/payments', authenticateToken, upload.single('receipt'), lockerCtrl.recordPayment);
 router.post('/locker/payments/:payment_id/verify', authenticateToken, authorizeAdmin, lockerCtrl.verifyPayment);
 router.get('/locker/rentals/:rental_id/payments', authenticateToken, lockerCtrl.getPaymentsForRental);
 router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
 router.post('/tickets/:ticket_id/reply', authenticateToken, replyTicket);
 router.get("/settings", authentication, getUserSettings);
 router.post("/settings/update-password", authentication, changePassword);
+
 
 // =================== admin routes ===================
 router.post('/create-user', authenticateToken, authorizeAdmin, createUser);

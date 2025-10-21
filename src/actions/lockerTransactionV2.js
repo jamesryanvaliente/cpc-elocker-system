@@ -233,7 +233,7 @@ const recordPayment = async (req, res) => {
       return res.status(400).json({ error: 'no remaining balance to pay' });
 
     // auto-set amount equal to the currently paid amount from rentals table
-    const expectedAmount = rental.paid_amount;
+    const expectedAmount = parseFloat(rental.paid_amount) || 0;
 
     // insert payment record (unverified)
     const [insertResult] = await connection.query(
