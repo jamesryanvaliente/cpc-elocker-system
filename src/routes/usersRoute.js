@@ -60,7 +60,7 @@ router.post('/login', async(req, res) => {
     await loginUser(req, res);
 });
 router.post('/locker/transaction', authenticateToken, lockerCtrl.lockerTransaction);
-router.post('/locker/payments', authenticateToken, upload.single('receipt'), lockerCtrl.recordPayment);
+router.post('/locker/payments', authenticateToken, /*upload.single('receipt'),*/ lockerCtrl.recordPayment);
 router.post('/locker/payments/:payment_id/verify', authenticateToken, authorizeAdmin, lockerCtrl.verifyPayment);
 router.get('/locker/rentals/:rental_id/payments', authenticateToken, lockerCtrl.getPaymentsForRental);
 router.get('/tickets/:ticket_id/messages', authenticateToken, getTicketMessages);
@@ -87,7 +87,7 @@ router.get('/dashboard/summary', authenticateToken, authorizeAdmin, getDashboard
 router.get('/dashboard/report/pdf', authenticateToken, authorizeAdmin, downloadDashboardReport);
 router.get('/active-rentals', authenticateToken, authorizeAdmin, rentStatus.getAllActiveRentals);
 router.get('/payment-history-ad/:rentalId', authenticateToken, authorizeAdmin, rentStatus.getPaymentHistoryAdmin);
-router.get('/courses', authenticateToken, authorizeAdmin, getAllCourses);
+router.get('/courses', /*authenticateToken, authorizeAdmin,*/ getAllCourses);
 router.post('/courses', authenticateToken, authorizeAdmin, upload.single('logo'), addCourse);
 router.get('/courses/:course_id/students', authenticateToken, authorizeAdmin, getStudentsByCourse);
 router.put('/users/:user_id/disable', authenticateToken, authorizeAdmin, disableUserAccount);
