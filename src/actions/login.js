@@ -35,7 +35,7 @@ const loginUser = async (req, res) => {
       //jwt token gereration
       const token = jwt.sign(
         {
-        user_id: user.user_id,
+        user_id: user.role === 'admin' ? user.account_id : user.user_id,
         username : user.username,
         role: user.role
         },
