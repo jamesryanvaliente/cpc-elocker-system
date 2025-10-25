@@ -61,9 +61,9 @@ const getStudentsByCourse = async (req, res) => {
 
     try {
         const [rows] = await connection.query(`
-            SELECT u.user_id, u.stud_id,
+            SELECT u.user_id, a.username, u.stud_id,
                    CONCAT(u.f_name, ' ', u.m_name, ' ', u.l_name) AS full_name,
-                   u.gender, u.email, a.role, u.created_date
+                   u.gender, u.email, a.role, a.status, u.created_date
             FROM users u
             JOIN accounts a ON u.account_id = a.account_id
             WHERE u.course_id = ? 

@@ -254,14 +254,18 @@ const rentalId = insertResult.insertId; // ✅ get new rental id
 // student uploads payment receipt (store image in database as base64 blob)
 const recordPayment = async (req, res) => {
   try {
-    const { rental_id, receipt, amount_paid_now } = req.body;
+    const { rental_id, receipt, amount_paid_now, payment_method, reference_number } = req.body;
+
     if (!rental_id) return res.status(400).json({ error: 'rental_id is required' });
-    if (!receipt) return res.status(400).json({ error: 'receipt (base64) is required' });
+    if (!payment_method) return res.status(400).json({ error: 'payment_method is required' });
 
-    // convert base64 string to buffer for longblob
-    const receiptBuffer = Buffer.from(receipt, 'base64');
+    // only require receipt if method is QR
+    let receiptBuffer = null;
+    if (payment_method === 'qr') {
+      if (!receipt) return res.status(400).json({ error: 'receipt (base64) is required for QR payments' });
+      receiptBuffer = Buffer.from(receipt, 'base64');
+    }
 
-    // get rental info
     const [rentalRows] = await connection.query(
       `
       SELECT lr.months, lr.total_amount, lr.paid_amount, lr.balance, lr.locker_id,
@@ -274,30 +278,40 @@ const recordPayment = async (req, res) => {
     );
 
     if (rentalRows.length === 0) return res.status(404).json({ error: 'rental not found' });
-
     const rental = rentalRows[0];
 
     if (rental.balance <= 0)
       return res.status(400).json({ error: 'no remaining balance to pay' });
 
-   // ✅ determine payment amount now
     const currentPayment = parseFloat(amount_paid_now) || 0;
     if (currentPayment <= 0)
       return res.status(400).json({ error: 'invalid payment amount' });
 
-    // insert into locker_payments with blob receipt
     const [insertResult] = await connection.query(
       `
       INSERT INTO locker_payments
-        (rental_id, user_id, amount_paid, confirmed_amount, payment_method,
-         payment_date, remarks, receipt_path, verified, verified_at)
-      VALUES (?, ?, ?, 0.00, 'qr', NOW(), 'receipt uploaded - pending verification', ?, 0, NOW())
+        (rental_id, transaction_type, user_id, amount_paid, confirmed_amount, payment_method,
+         reference_number, payment_date, remarks, receipt_path, verified, verified_at)
+      VALUES (?, 'rent', ?, ?, 0.00, ?, ?, NOW(), ?, ?, 0, NULL)
       `,
-      [rental_id, rental.user_id, currentPayment, receiptBuffer]
+      [
+        rental_id,
+        rental.user_id,
+        currentPayment,
+        payment_method,
+        payment_method === 'qr' ? reference_number || null : null,
+        payment_method === 'cash'
+          ? 'payment recorded - pending verification'
+          : 'receipt uploaded - pending verification',
+        receiptBuffer
+      ]
     );
 
     res.status(200).json({
-      message: `payment receipt uploaded successfully for ₱${currentPayment.toFixed(2)}, awaiting admin verification`,
+      message:
+        payment_method === 'cash'
+          ? `cash payment recorded successfully for ₱${currentPayment.toFixed(2)}`
+          : `qr payment receipt uploaded successfully for ₱${currentPayment.toFixed(2)}, awaiting admin verification`,
       payment_id: insertResult.insertId,
       expected_amount: currentPayment,
       student_name: `${rental.f_name} ${rental.m_name ? rental.m_name + ' ' : ''}${rental.l_name}`,
@@ -334,8 +348,10 @@ const verifyPayment = async (req, res) => {
     // if admin rejects
     if (!approve) {
       await connection.query(
-        `UPDATE locker_payments SET verified = -1, verified_at = NOW() WHERE payment_id = ?`,
-        [payment_id]
+        `UPDATE locker_payments
+         SET verified = -1, verified_at = NOW(), verified_by = ?, verified_remarks = ?
+         WHERE payment_id = ?`,
+        [adminId, verified_remarks || 'payment rejected', payment_id]
       );
       await logActivity(adminId, adminName, `rejected payment of ${studentName}`);
       return res.status(200).json({ message: `payment of ${studentName} rejected successfully` });
@@ -359,9 +375,11 @@ const verifyPayment = async (req, res) => {
       `UPDATE locker_payments
        SET verified = 1,
            confirmed_amount = ?,
-           verified_at = NOW()
+           verified_at = NOW(),
+           verified_by = ?,
+           verified_remarks = ?
        WHERE payment_id = ?`,
-      [confirmed, payment_id]
+      [confirmed, adminId, verified_remarks || 'payment verified', payment_id]
     );
 
     // update rental (keep same paid_amount if qr; add only if manual)
@@ -409,7 +427,14 @@ const verifyPayment = async (req, res) => {
 const getPaymentsForRental = async (req, res) => {
   const rental_id = req.params.rental_id;
   try {
-    const [rows] = await connection.query('SELECT * FROM locker_payments WHERE rental_id = ? ORDER BY payment_date DESC', [rental_id]);
+    const [rows] = await connection.query(`
+      SELECT lp.*, u.f_name, u.m_name, u.l_name
+      FROM locker_payments lp
+      JOIN users u ON lp.user_id = u.user_id
+      WHERE lp.rental_id = ?
+      ORDER BY lp.payment_date DESC
+      `,
+      [rental_id]);
     return res.status(200).json(rows);
   } catch (error) {
     console.error('error fetching payments:', error);

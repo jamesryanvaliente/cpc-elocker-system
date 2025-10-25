@@ -191,7 +191,7 @@ const cancelRental = async (req, res) => {
        VALUES (?, ?, 'warning')`,
       [
         rental.user_id,
-        `Your locker rent request (Locker #${rental.locker_id}) was cancelled by the admin because payment was not completed.`
+        `Your locker rent request (Locker ${rental.locker_name}) was cancelled by the admin because payment was not completed.`
       ]
     );
 

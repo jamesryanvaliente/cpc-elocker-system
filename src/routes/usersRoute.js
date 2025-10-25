@@ -8,6 +8,7 @@ const upload = multer();
 
 // =================== middleware ===================
 const authenticateToken = require('../middleware/authentication');
+const authorizeAdmin = require('../middleware/authorizeAdmin');
 
 // =================== notification actions ===================
 const { getNotifications, markAsRead, markAllAsRead } = require('../actions/notification');
@@ -30,7 +31,6 @@ const { getUserSettings, changePassword } = require("../actions/settings");
 const createUser = require('../actions/createUserByAdmin');
 const forgotPassword = require('../actions/forgotPassword');
 // const getAdminDashboard = require('../actions/getAdminDashboard');
-const authorizeAdmin = require('../middleware/authorizeAdmin');
 const addLocker = require('../actions/addLocker');
 const { approveRental, cancelRental } = require('../actions/approveRentalV2');
 const { getPendingRentals } = require('../actions/getPendingRentals');
@@ -43,6 +43,7 @@ const downloadDashboardReport = require('../actions/downloadDashboardReport');
 const { getAllCourses, addCourse, getStudentsByCourse } = require('../actions/getAllUsers');
 const { disableUserAccount, enableUserAccount } = require('../actions/userAccountStatus');
 const { getAuditLogs } = require('../actions/auditlog');
+const transactionLogs = require('../actions/transactionLogs');
 
 // =================== tenant ===================
 const createAccount = require('../actions/createAccount');
@@ -51,7 +52,7 @@ const loginUser = require('../actions/login');
 // const changePassword = require('../actions/changePassword');
 
 // =================== upload profile pic ===================
-const uploads = require('../middleware/upload');
+// const uploads = require('../middleware/upload');
 const uploadProfilePic = require('../actions/upload');
 const authentication = require('../middleware/authentication');
 
@@ -93,6 +94,9 @@ router.get('/courses/:course_id/students', authenticateToken, authorizeAdmin, ge
 router.put('/users/:user_id/disable', authenticateToken, authorizeAdmin, disableUserAccount);
 router.put('/users/:user_id/enable', authenticateToken, authorizeAdmin, enableUserAccount);
 router.get('/audit-logs', authenticateToken, authorizeAdmin, getAuditLogs);
+router.get('/transaction-logs', authenticateToken, authorizeAdmin, transactionLogs.getTransactions);
+router.get('/transaction-logs/report/pdf', authenticateToken, authorizeAdmin, transactionLogs.downloadTransactionsPDF);
+// router.get("/students", authenticateToken, authorizeAdmin, getStudentsByCourse); 
 
 
 
